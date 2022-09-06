@@ -9,10 +9,30 @@ app.use(cors());
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: "*",
         methods: ["GET", "POST"],
     }
 });
+
+
+var mysql = require('mysql');
+var con = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'hello_super_star_backend'
+});
+
+con.connect(function (err) {
+    if (err)
+        throw err;
+    console.log("MySql Database Connected");
+});
+
+
+
+
+
 
 //is some one connected
 io.on("connection", (socket) => {
@@ -23,9 +43,41 @@ io.on("connection", (socket) => {
         console.log(`user join: ${socket.id} || room id: ${data}`)
     })
 
+    /**
+     * send fan group 
+     */
     socket.on('send_message', (data) => {
-        socket.to(data.room).emit("recive_message", data)
-        console.log('recive message', data.room)
+        socket.to(data.room_id).emit("recive_message", data)
+        console.log('recive message', data)
+
+
+        con.query(
+            `INSERT INTO fan_group_messages (sender_id, sender_name, sender_image,group_id,position,text,room_id,time,status )
+            VALUES (${data.sender_id + ',' + '"' + data.sender_name + '"' + ',' + '"' + data.sender_image + '"' + ',' + data.group_id + ',' + 2 + ',' + "'" + data.text + "'" + ',' + data.room_id + ',' + '"' + data.time + '"' + ',' + data.status})`,
+            function (err, res) {
+
+                if (res.affectedRows > 0) {
+                    console.log("message save to database ❤️")
+                }
+
+            });
+    })
+
+
+    /**
+     * qna message
+     */
+    socket.on('qna_send_message', (data) => {
+        socket.to(data.room_id).emit("qna_recive_message", data)
+        console.log('qna message', data)
+    })
+
+
+
+
+    socket.on('typing_event_send', (data) => {
+        socket.broadcast.to(data.room_id).emit("typing_event_recive", data)
+        console.log('typing', data)
     })
 
     socket.on('disconnect', () => {
@@ -33,13 +85,13 @@ io.on("connection", (socket) => {
     })
 });
 
-server.listen(3001, () => {
-    console.log("server runnig....")
-})
+// server.listen(3001, () => {
+//     console.log("server runnig....")
+// })
 
-// app.get('/', (req, res) => {
-//     res.sendFile(__dirname + '/index.html');
-// });
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
 
 // io.on('connection', (socket) => {
 //     console.log('a user connected');
@@ -48,6 +100,6 @@ server.listen(3001, () => {
 //     });
 // });
 
-// server.listen(3000, () => {
-//     console.log('listening on http://localhost:3000');
-// });
+server.listen(3001, () => {
+    console.log('listening on http://localhost:3001');
+});
