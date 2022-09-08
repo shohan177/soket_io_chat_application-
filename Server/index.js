@@ -14,7 +14,9 @@ const io = new Server(server, {
     }
 });
 
-
+/**
+ * sql connection
+ */
 var mysql = require('mysql');
 var con = mysql.createConnection({
     host: 'localhost',
@@ -53,11 +55,19 @@ io.on("connection", (socket) => {
 
         con.query(
             `INSERT INTO fan_group_messages (sender_id, sender_name, sender_image,group_id,position,text,room_id,time,status )
-            VALUES (${data.sender_id + ',' + '"' + data.sender_name + '"' + ',' + '"' + data.sender_image + '"' + ',' + data.group_id + ',' + 2 + ',' + "'" + data.text + "'" + ',' + data.room_id + ',' + '"' + data.time + '"' + ',' + data.status})`,
+            VALUES (${data.sender_id
+            + ',' + '"' + data.sender_name + '"'
+            + ',' + '"' + data.sender_image + '"'
+            + ',' + data.group_id + ','
+            + 2
+            + ',' + "'" + data.text + "'"
+            + ',' + '"' + data.room_id + '"'
+            + ',' + '"' + data.time + '"'
+            + ',' + data.status})`,
             function (err, res) {
 
                 if (res.affectedRows > 0) {
-                    console.log("message save to database ❤️")
+                    console.log("fan group sms save to database ❤️")
                 }
 
             });
@@ -70,11 +80,35 @@ io.on("connection", (socket) => {
     socket.on('qna_send_message', (data) => {
         socket.to(data.room_id).emit("qna_recive_message", data)
         console.log('qna message', data)
+        con.query(
+            `INSERT INTO qna_messages (sender_id,qna_id,sender_name,room_id,msg_type,sender_image,media,text,time)
+            VALUES (${data.sender_id
+            + ',' + data.qna_id
+            + ',' + '"' + data.sender_name + '"'
+            + ',' + '"' + data.room_id + '"'
+            + ',' + '"' + data.msg_type + '"'
+            + ',' + '"' + data.sender_image + '"'
+            + ',' + '"' + data.media + '"'
+            + ',' + '"' + data.text + '"'
+            + ',' + '"' + data.time + '"'
+
+            })`,
+            function (err, res) {
+
+                if (res.affectedRows > 0) {
+                    console.log("qna message save to database ❤️")
+                }
+
+            });
+
+
     })
 
 
 
-
+    /**
+     * typing session
+     */
     socket.on('typing_event_send', (data) => {
         socket.broadcast.to(data.room_id).emit("typing_event_recive", data)
         console.log('typing', data)
@@ -85,20 +119,11 @@ io.on("connection", (socket) => {
     })
 });
 
-// server.listen(3001, () => {
-//     console.log("server runnig....")
-// })
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// io.on('connection', (socket) => {
-//     console.log('a user connected');
-//     socket.on('disconnect', () => {
-//         console.log('user disconnected');
-//     });
-// });
 
 server.listen(3001, () => {
     console.log('listening on http://localhost:3001');
