@@ -25,6 +25,7 @@ var con = mysql.createConnection({
     database: 'hello_super_star_backend'
 });
 
+
 con.connect(function (err) {
     if (err)
         throw err;
@@ -46,31 +47,50 @@ io.on("connection", (socket) => {
     })
 
     /**
+     * user online
+     */
+    socket.on("get_online_star", (data) => {
+        console.log('online star', {
+            id: Number(data),
+            soketID: socket.id
+        })
+        socket.broadcast.emit("recive_online_star", {
+            id: Number(data),
+            soketID: socket.id
+        })
+    })
+
+
+    /**
      * send fan group 
      */
     socket.on('send_message', (data) => {
         socket.to(data.room_id).emit("recive_message", data)
         console.log('recive message', data)
 
+        try {
+            con.query(
+                `INSERT INTO fan_group_messages (sender_id, sender_name, sender_image,group_id,position,text,room_id,time,status )
+        VALUES (${data.sender_id
+                + ',' + '"' + data.sender_name + '"'
+                + ',' + '"' + data.sender_image + '"'
+                + ',' + data.group_id + ','
+                + 2
+                + ',' + "'" + data.text + "'"
+                + ',' + '"' + data.room_id + '"'
+                + ',' + '"' + data.time + '"'
+                + ',' + data.status})`,
+                function (err, res) {
 
-        con.query(
-            `INSERT INTO fan_group_messages (sender_id, sender_name, sender_image,group_id,position,text,room_id,time,status )
-            VALUES (${data.sender_id
-            + ',' + '"' + data.sender_name + '"'
-            + ',' + '"' + data.sender_image + '"'
-            + ',' + data.group_id + ','
-            + 2
-            + ',' + "'" + data.text + "'"
-            + ',' + '"' + data.room_id + '"'
-            + ',' + '"' + data.time + '"'
-            + ',' + data.status})`,
-            function (err, res) {
+                    if (res.affectedRows > 0) {
+                        console.log("fan group sms save to database ❤️")
+                    }
 
-                if (res.affectedRows > 0) {
-                    console.log("fan group sms save to database ❤️")
-                }
+                });
+        } catch (error) {
+            console.log(error.message)
+        }
 
-            });
     })
 
 
@@ -81,7 +101,7 @@ io.on("connection", (socket) => {
         socket.to(data.room_id).emit("qna_recive_message", data)
         console.log('qna message', data)
         con.query(
-            `INSERT INTO qna_messages (sender_id,qna_id,sender_name,room_id,msg_type,sender_image,media,text,time)
+            `INSERT INTO qna_messages (sender_id,qna_id,sender_name,room_id,msg_type,sender_image,media,text,time,status)
             VALUES (${data.sender_id
             + ',' + data.qna_id
             + ',' + '"' + data.sender_name + '"'
@@ -91,7 +111,7 @@ io.on("connection", (socket) => {
             + ',' + '"' + data.media + '"'
             + ',' + '"' + data.text + '"'
             + ',' + '"' + data.time + '"'
-
+            + ',' + 1
             })`,
             function (err, res) {
 
@@ -114,8 +134,21 @@ io.on("connection", (socket) => {
         console.log('typing', data)
     })
 
+    socket.on('leave-room', (roomid) => {
+        if (roomid !== 0) {
+
+            socket.leave(roomid, function (err) {
+                console.log(err)
+            })
+        } else {
+            console.log('load avoiding💥')
+        }
+
+    })
+
     socket.on('disconnect', () => {
         console.log("user disconnected", socket.id)
+        socket.broadcast.emit("recive_offonline_star", socket.id)
     })
 });
 
@@ -125,6 +158,13 @@ app.get('/', (req, res) => {
 });
 
 
-server.listen(3001, () => {
-    console.log('listening on http://localhost:3001');
+server.listen(3005, () => {
+    console.log('listening on http://localhost:3005');
 });
+
+
+
+// import { io } from "socket.io-client";
+// const socket = useRef();
+// socket.current = io("http://192.168.0.106:3005/");
+// socket.current.emit("join_room", groupData?.room_id);
