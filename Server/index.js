@@ -32,10 +32,16 @@ con.connect(function (err) {
     console.log("MySql Database Connected");
 });
 
+let users = [];
+
+const addUser = (userId, socketId) => {
+    console.log(userId + '  and  ' + socketId)
+    !users.some((user) => user.userId === userId) &&
+        users.push({ userId, socketId });
+};
 
 
-
-
+let activeStar = []
 
 //is some one connected
 io.on("connection", (socket) => {
@@ -46,17 +52,33 @@ io.on("connection", (socket) => {
         console.log(`user join: ${socket.id} || room id: ${data}`)
     })
 
+    socket.on("addUser", (userId) => {
+        addUser(userId, socket.id);
+        io.emit("getUsers", users);
+        // getNotification(userId, socket.id);
+    });
+
+
     /**
      * user online
      */
     socket.on("get_online_star", (data) => {
+        activeStar.push(
+            {
+                id: Number(data),
+                soketID: socket.id
+            }
+        )
         console.log('online star', {
             id: Number(data),
             soketID: socket.id
         })
         socket.broadcast.emit("recive_online_star", {
-            id: Number(data),
-            soketID: socket.id
+            userInfo: {
+                id: Number(data),
+                soketID: socket.id
+            },
+            activeStar
         })
     })
 
@@ -147,8 +169,14 @@ io.on("connection", (socket) => {
     })
 
     socket.on('disconnect', () => {
-        console.log("user disconnected", socket.id)
-        socket.broadcast.emit("recive_offonline_star", socket.id)
+        index = activeStar.findIndex(x => x.soketID == socket.id);
+
+
+        activeStar.slice(index)
+
+        console.log("user disconnected", index, socket.id, activeStar)
+
+        socket.broadcast.emit("recive_offonline_star", activeStar)
     })
 });
 
